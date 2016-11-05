@@ -1,0 +1,5 @@
+*.pyc
+build
+dist
+insteontcp.egg-info
+__pycache__
