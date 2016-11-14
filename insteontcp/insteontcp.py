@@ -23,15 +23,19 @@ import binascii
 INSTEONTCP_CMD_TYPE_STANDARD = b'\x02\x62'
 INSTEONTCP_CMD_TYPE_ALL_LINK = b'\x02\x61'
 
-INSTEONTCP_CMD_INFO = b'\x10'
-INSTEONTCP_CMD_TURN_ON = b'\x11'
-INSTEONTCP_CMD_TURN_OFF = b'\x13'
+INSTEONTCP_CMD_INFO = 16 # 0x10
+INSTEONTCP_CMD_TURN_ON = 17 # 0x11
+INSTEONTCP_CMD_TURN_OFF = 19 # 0x13
 
-INSTEONTCP_FLAG_STD_MSG = b'\x0F'
+INSTEONTCP_FLAG_STD_MSG = 15 # 0x0F
 INSTEONTCP_FLAG_EXTENDED_MESSAGE = 16
 
-INSTEONTCP_LEVEL_MAX = b'\xFF'
-INSTEONTCP_LEVEL_ZERO = b'\x00'
+INSTEONTCP_LEVEL_MAX = 255 # 0xFF
+INSTEONTCP_LEVEL_ZERO = 0 # 0x00
+
+INSTEONTCP_EVENT_LIGHT_SWITCH = 0
+INSTEONTCP_EVENT_GROUP_SWITCH = 1
+INSTEONTCP_EVENT_CLEANUP = 2
 
 class InsteonTCP():
     
@@ -64,7 +68,7 @@ class InsteonTCP():
         self.__send_command(INSTEONTCP_CMD_TYPE_ALL_LINK + bytes.fromhex(group_number) + INSTEONTCP_CMD_TURN_ON + INSTEONTCP_LEVEL_ZERO)
 
     def __standard_command(self, id, cmd1, cmd2=INSTEONTCP_LEVEL_ZERO):
-        self.__send_command(INSTEONTCP_CMD_TYPE_STANDARD + bytes.fromhex(id) + INSTEONTCP_FLAG_STD_MSG + cmd1 + cmd2)
+        self.__send_command(INSTEONTCP_CMD_TYPE_STANDARD + bytes.fromhex(id) + INSTEONTCP_FLAG_STD_MSG.to_bytes(1, byteorder='big') + cmd1.to_bytes(1, byteorder='big') + cmd2.to_bytes(1, byteorder='big'))
 
     def __send_command(self, cmd):
         self._queue.put(cmd)
@@ -79,11 +83,18 @@ class InsteonTCP():
             flags = data[8]
             cmd1 = data[9]
             cmd2 = data[10]
-            
-            self.__event_callback(from_addr, cmd1, cmd2)
+
+            self.__event_callback({'type': INSTEONTCP_EVENT_LIGHT_SWITCH, 'address': from_addr, 'cmd1': cmd1, 'cmd2': cmd2})
             self.__data_callback(data[0:11])
             return data[11:]
-            
+        elif (message_type == 0x58):
+            self.__event_callback({'type': INSTEONTCP_EVENT_CLEANUP, 'status': data[2]})
+            self.__data_callback(data[0:3])
+            return data[3:]
+        elif (message_type == 0x61):
+            self.__event_callback({'type': INSTEONTCP_EVENT_GROUP_SWITCH, 'group': data[2], 'cmd': data[3]})
+            self.__data_callback(data[0:6])
+            return data[6:]  
         elif (message_type == 0x62):
             from_addr = binascii.hexlify(data[2:5]).decode("utf-8").upper()
             flags = data[5]
@@ -118,19 +129,10 @@ class InsteonTCP():
             try:
               # TODO: deal with the possibility that we didn't read an entire message
               data = self._sock.recv(64)
-              # next_message_size = self.__get_next_message_size(data)
-              # print("socket: ", binascii.hexlify(bytearray(data)))
+
               while (len(data) > 0):
                   data = self.__process_next_event(data)  
 
-              
-              # while (next_message_size > 0 and len(data) >= next_message_size):
-              #     event = data[0:next_message_size]
-              #     self.__data_callback(event)
-              #     self.__process_event(event)
-
-              #     data = data[next_message_size:len(data)]
-              #     next_message_size = self.__get_next_message_size(data)
             except:
                 pass
 

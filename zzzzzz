@@ -71,3 +71,13 @@ datasize:  20
 next msg size: 9
 event:  b'\x02bB,\xb4\x05\x19\x02\x06'
 event:  b'\x02PB,\xb4*\xd1\xac%'
+
+
+
+// RECESSED SLOW ON
+b'0261 091300 06'
+b'025806025041e3c42ad1ace013fc025041e3c42ad1ace013fc'
+
+// RECESSED SLOW OFF
+b'0261 091100 06'
+b'025806025041e3c42ad1ace011fc025041e3c42ad1ace011fc'
