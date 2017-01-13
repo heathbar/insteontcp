@@ -1,5 +1,6 @@
 *.pyc
 build
 dist
+insteontcp/test.py
 insteontcp.egg-info
 __pycache__

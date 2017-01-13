@@ -12,11 +12,6 @@ import threading
 import time
 import queue
 import socket
-import io
-import ipaddress
-import struct
-from struct import pack
-from enum import IntEnum
 
 import binascii
 
@@ -113,12 +108,15 @@ class InsteonTCP():
 
     def __command_sender(self):
         """ Command sender. """
-        sequence = -1
 
         while True:
             try:
+                # this statement is blocking
                 cmd = self._queue.get()
                 self._sock.sendall(cmd)
+
+                # Don't overload the hub or it skips commands
+                time.sleep(0.1)            
             except:
                 pass
     
@@ -135,15 +133,3 @@ class InsteonTCP():
 
             except:
                 pass
-
-
-# def echo_it(data):
-#     # print(binascii.hexlify(bytearray(data)))
-#     print("")
-
-# x = InsteonTCP('10.1.1.47', 9761, echo_it, echo_it)
-
-# x.turn_on('422CB4')
-
-# while 1:
-#     time.sleep(1)
